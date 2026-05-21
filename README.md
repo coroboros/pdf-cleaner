@@ -55,30 +55,20 @@ bun add @coroboros/pdf-cleaner
 
 ## Usage
 
-```ts
-// ESM (recommended)
-import { clean } from '@coroboros/pdf-cleaner';
-```
-
-```js
-// CommonJS
-const { clean } = require('@coroboros/pdf-cleaner');
-```
+**Programmatic**
 
 ```ts
 import { readFile, writeFile } from 'node:fs/promises';
-import { clean, CleanError } from '@coroboros/pdf-cleaner';
+import { clean } from '@coroboros/pdf-cleaner';
 
-const bytes = await readFile('cv.pdf');
+const cleaned = await clean(await readFile('cv.pdf'));
+await writeFile('cv_clean.pdf', cleaned);
+```
 
-try {
-  const cleaned = await clean(bytes);
-  await writeFile('cv_clean.pdf', cleaned);
-} catch (err) {
-  if (err instanceof CleanError) {
-    console.error(err.code, err.message);
-  }
-}
+**CLI**
+
+```bash
+npx @coroboros/pdf-cleaner cv.pdf
 ```
 
 ## Why this exists
