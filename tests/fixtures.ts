@@ -131,7 +131,14 @@ export const buildPdf = async (options: FixtureOptions = {}): Promise<Uint8Array
       O: 'stub-owner-key-32-bytes-padded____',
       U: 'stub-user-key-32-bytes-padded_____',
     });
-    return doc.save({ useObjectStreams: false });
+    const bytes = await doc.save({ useObjectStreams: false });
+    const verify = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    if (!verify.isEncrypted) {
+      throw new Error(
+        'buildPdf({ encrypted: true }) failed to produce an encrypted PDF — pdf-lib may have changed its isEncrypted heuristic.',
+      );
+    }
+    return bytes;
   }
 
   return doc.save();
