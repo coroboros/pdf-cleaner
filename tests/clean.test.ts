@@ -223,6 +223,17 @@ describe('clean()', () => {
       const result = await clean(buf as unknown as Uint8Array);
       expect(result.byteLength).toBeGreaterThan(0);
     });
+
+    it('handles concurrent calls on a shared Uint8Array', async () => {
+      const source = await buildPdf({
+        metadata: { title: 'T' },
+        links: [{ uri: 'https://example.com' }],
+      });
+      const baseline = await clean(source);
+      const [a, b] = await Promise.all([clean(source), clean(source)]);
+      expect(a).toEqual(baseline);
+      expect(b).toEqual(baseline);
+    });
   });
 
   describe('error handling', () => {
