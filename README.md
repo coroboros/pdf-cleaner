@@ -27,6 +27,7 @@ Removes `/Link` annotations and wipes the Info dictionary plus any XMP metadata 
 - [CLI](#cli)
 - [API](#api)
 - [Limitations](#limitations)
+- [Compared to alternatives](#compared-to-alternatives)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -278,6 +279,21 @@ const cleaned = await clean(bytes, { signal: AbortSignal.timeout(5000) });
 - Directory mode walks the top level only — subdirectories are not traversed.
 - Text content, embedded images, page geometry, fonts, bookmarks, and form fields are preserved untouched.
 - Out of scope: text redaction, watermark removal, compression, OCR, JavaScript action stripping, attachment removal.
+
+## Compared to alternatives
+
+| Feature                              |   `pdf-lib` (raw)    | `qpdf` / `node-qpdf2` | `exiftool-vendored` |    `muhammara`     | **`@coroboros/pdf-cleaner`** |
+| ------------------------------------ | :------------------: | :-------------------: | :-----------------: | :----------------: | :--------------------------: |
+| Strip Info dictionary                | DIY                  | DIY (binary flags)    | yes (`-all=`)       | DIY                | yes                          |
+| Strip XMP metadata stream            | DIY                  | DIY (binary flags)    | yes (`-all=`)       | DIY                | yes                          |
+| Strip `/Link` annotations            | DIY                  | DIY                   | no                  | DIY                | yes                          |
+| Pure JS — no native binary           | yes                  | no (qpdf binary)      | no (Perl binary)    | no (C++ bindings)  | yes                          |
+| In-process — no network upload       | yes                  | yes                   | yes                 | yes                | yes                          |
+| CLI included                         | no                   | no (lib only)         | no (lib only)       | no                 | yes                          |
+| `AbortSignal` cancellation           | no                   | no                    | no                  | no                 | yes                          |
+| Coded `ENCRYPTED` rejection          | throws (no code)     | no                    | n/a                 | unknown            | yes                          |
+
+The market gap is in-process strip plus a bundled CLI. `pdf-lib` ships the engine but no strip helper; every byte you remove, you write the code for. `qpdf` and `muhammara` carry native binaries, and the npm wrappers focus on encryption rather than metadata. `exiftool` clears the Info dict and XMP cleanly but never touches the annotation array, so `/Link` rectangles stay clickable in the output. Hosted cleaners cover everything except the one rule that mattered first: the file leaves your machine. `@coroboros/pdf-cleaner` runs the three strips in-process on `pdf-lib`. The same install ships a coded `CleanError`, `AbortSignal` cancellation at every phase, an `npx` CLI, and an `ENCRYPTED` rejection code for password-protected PDFs.
 
 ## Contributing
 
