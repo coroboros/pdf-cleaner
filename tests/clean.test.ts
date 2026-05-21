@@ -297,6 +297,39 @@ describe('clean()', () => {
         expect((err as CleanError).cause).toBe(reason);
       }
     });
+
+    it('throws CleanError ABORTED when the signal fires after load', async () => {
+      const source = await buildPdf();
+      const controller = new AbortController();
+      const reason = new Error('after-load cancel');
+      queueMicrotask(() => controller.abort(reason));
+      try {
+        await clean(source, { signal: controller.signal });
+        expect.fail('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(CleanError);
+        expect((err as CleanError).code).toBe('ABORTED');
+        expect((err as CleanError).cause).toBe(reason);
+      }
+    });
+
+    it('throws CleanError ABORTED when the signal fires after the strip phase', async () => {
+      const source = await buildPdf({
+        metadata: { title: 'T' },
+        links: [{ uri: 'https://example.com' }],
+      });
+      const controller = new AbortController();
+      const reason = new Error('after-strip cancel');
+      queueMicrotask(() => queueMicrotask(() => controller.abort(reason)));
+      try {
+        await clean(source, { signal: controller.signal });
+        expect.fail('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(CleanError);
+        expect((err as CleanError).code).toBe('ABORTED');
+        expect((err as CleanError).cause).toBe(reason);
+      }
+    });
   });
 
   describe('idempotency', () => {
