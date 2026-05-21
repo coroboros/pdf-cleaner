@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/logo.png" width="288" height="288" alt="@coroboros/pdf-cleaner"/>
+
 <!-- omit in toc -->
 # @coroboros/pdf-cleaner
 
