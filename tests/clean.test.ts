@@ -272,6 +272,31 @@ describe('clean()', () => {
         code: 'ENCRYPTED',
       });
     });
+
+    it('throws CleanError ABORTED when the signal is already aborted', async () => {
+      const source = await buildPdf();
+      const controller = new AbortController();
+      controller.abort();
+      await expect(clean(source, { signal: controller.signal })).rejects.toMatchObject({
+        name: 'CleanError',
+        code: 'ABORTED',
+      });
+    });
+
+    it('preserves signal.reason on the ABORTED cause', async () => {
+      const source = await buildPdf();
+      const controller = new AbortController();
+      const reason = new Error('caller cancelled');
+      controller.abort(reason);
+      try {
+        await clean(source, { signal: controller.signal });
+        expect.fail('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(CleanError);
+        expect((err as CleanError).code).toBe('ABORTED');
+        expect((err as CleanError).cause).toBe(reason);
+      }
+    });
   });
 
   describe('idempotency', () => {

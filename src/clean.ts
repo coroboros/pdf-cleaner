@@ -6,6 +6,7 @@ export type CleanInput = Uint8Array | ArrayBuffer;
 export type CleanOptions = {
   keepLinks?: boolean;
   keepMetadata?: boolean;
+  signal?: AbortSignal;
 };
 
 const LINK = PDFName.of('Link');
@@ -55,11 +56,20 @@ const stripMetadata = (doc: PDFDocument): void => {
   doc.catalog.delete(METADATA);
 };
 
+const throwIfAborted = (signal: AbortSignal | undefined): void => {
+  if (signal?.aborted === true) {
+    throw new CleanError('ABORTED', 'operation aborted', { cause: signal.reason });
+  }
+};
+
 export const clean = async (input: CleanInput, options?: CleanOptions): Promise<Uint8Array> => {
   const bytes = toUint8Array(input);
   if (bytes.byteLength === 0) {
     throw new CleanError('INVALID_INPUT', 'input is empty');
   }
+
+  const signal = options?.signal;
+  throwIfAborted(signal);
 
   let doc: PDFDocument;
   try {
@@ -71,6 +81,8 @@ export const clean = async (input: CleanInput, options?: CleanOptions): Promise<
     const message = cause instanceof Error ? cause.message : 'failed to parse PDF';
     throw new CleanError('PARSE_FAILED', message, { cause });
   }
+
+  throwIfAborted(signal);
 
   if (doc.isEncrypted) {
     throw new CleanError(
@@ -85,6 +97,8 @@ export const clean = async (input: CleanInput, options?: CleanOptions): Promise<
   if (options?.keepMetadata !== true) {
     stripMetadata(doc);
   }
+
+  throwIfAborted(signal);
 
   return doc.save({ useObjectStreams: true });
 };
