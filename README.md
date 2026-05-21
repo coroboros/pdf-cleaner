@@ -24,6 +24,7 @@ Removes `/Link` annotations and wipes the Info dictionary plus any XMP metadata 
 - [Install](#install)
 - [Usage](#usage)
 - [Why this exists](#why-this-exists)
+- [CLI](#cli)
 - [API](#api)
 - [Limitations](#limitations)
 - [Contributing](#contributing)
@@ -35,6 +36,8 @@ Removes `/Link` annotations and wipes the Info dictionary plus any XMP metadata 
 - Any modern package manager: pnpm, npm, yarn, bun.
 
 ## Install
+
+**As a library**
 
 ```bash
 pnpm add @coroboros/pdf-cleaner
@@ -52,24 +55,78 @@ yarn add @coroboros/pdf-cleaner
 bun add @coroboros/pdf-cleaner
 ```
 
+**As a CLI**
+
+```bash
+# Run without installing
+npx @coroboros/pdf-cleaner cv.pdf
+```
+
+```bash
+# Install globally for repeated use
+pnpm add -g @coroboros/pdf-cleaner
+pdf-cleaner --help
+```
+
 ## Usage
 
-### CLI
+**Programmatic**
 
-Run without installing:
+```ts
+import { readFile, writeFile } from 'node:fs/promises';
+import { clean } from '@coroboros/pdf-cleaner';
+
+const cleaned = await clean(await readFile('cv.pdf'));
+await writeFile('cv_clean.pdf', cleaned);
+```
+
+**CLI**
 
 ```bash
 npx @coroboros/pdf-cleaner cv.pdf
 ```
 
-Install globally for repeated use:
+## Why this exists
 
-```bash
-npm install -g @coroboros/pdf-cleaner
-pdf-cleaner --help
-```
+PDFs carry hidden authorship. The Info dictionary embeds `/Title`, `/Author`, `/Producer`, creation and modification dates, and any XMP metadata stream attached to the catalog. Hyperlinks travel via `/Link` annotations on each page. Hosted cleaners strip both, then upload the bytes. `@coroboros/pdf-cleaner` runs the same strips in-process on a single dependency ([`pdf-lib`](https://github.com/Hopding/pdf-lib)). No network calls, no telemetry. See [`bench/baseline.md`](bench/baseline.md) for the round-trip numbers and the regression budget.
 
-Common forms:
+## CLI
+
+<details>
+<summary><code>pdf-cleaner &lt;input&gt; [options]</code></summary>
+
+<br>
+
+Strip metadata and links from a PDF or a directory of PDFs. Writes the cleaned bytes alongside the input with a `_clean.pdf` suffix unless `--out` or `--in-place` is set.
+
+**Arguments**
+
+| Arg | Type | Description |
+| --- | --- | --- |
+| `<input>` | `string` *(required)* | A `.pdf` file, or a directory of `.pdf` files. Directory mode is top-level only — subdirectories are not traversed. |
+
+**Options**
+
+| Flag | Type | Default | Description |
+| --- | --- | --- | --- |
+| `--out <dir>` | `string` | alongside input | Output directory for cleaned files. Created if missing. |
+| `--in-place` | `boolean` | `false` | Overwrite the input(s) in place. TTY prompts for confirmation; non-TTY contexts require `--yes`. |
+| `--yes`, `-y` | `boolean` | `false` | Skip the `--in-place` confirmation prompt. Required to run `--in-place` in CI, scripts, or any non-TTY context. |
+| `--keep-links` | `boolean` | `false` | Preserve `/Link` annotations. Other annotation subtypes are preserved regardless. |
+| `--keep-metadata` | `boolean` | `false` | Preserve the Info dictionary (`/Title`, `/Author`, `/Subject`, `/Keywords`, `/Creator`, `/Producer`, `/CreationDate`, `/ModDate`) and any XMP metadata stream. |
+| `--help`, `-h` | `boolean` | — | Print the usage block and exit `0`. |
+| `--version`, `-v` | `boolean` | — | Print the package version and exit `0`. |
+
+**Exit codes**
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success. Every input file produced a cleaned output. |
+| `1` | User error. Bad input path, unknown flag, or `--in-place` in a non-TTY context without `--yes`. |
+| `2` | Per-file cleaning error. At least one file failed. Other files in directory mode still complete. |
+| `3` | Unexpected error not classified above. |
+
+**Examples**
 
 ```bash
 # Single file → cv_clean.pdf alongside the input
@@ -90,39 +147,7 @@ pdf-cleaner cv.pdf --keep-links
 pdf-cleaner cv.pdf --keep-metadata
 ```
 
-Exit codes: `0` success, `1` user error (bad path, unknown flag), `2` per-file cleaning error, `3` unexpected.
-
-### Programmatic
-
-```ts
-// ESM (recommended)
-import { clean } from '@coroboros/pdf-cleaner';
-```
-
-```js
-// CommonJS
-const { clean } = require('@coroboros/pdf-cleaner');
-```
-
-```ts
-import { readFile, writeFile } from 'node:fs/promises';
-import { clean, CleanError } from '@coroboros/pdf-cleaner';
-
-const bytes = await readFile('cv.pdf');
-
-try {
-  const cleaned = await clean(bytes);
-  await writeFile('cv_clean.pdf', cleaned);
-} catch (err) {
-  if (err instanceof CleanError) {
-    console.error(err.code, err.message);
-  }
-}
-```
-
-## Why this exists
-
-PDFs carry hidden authorship. The Info dictionary embeds `/Title`, `/Author`, `/Producer`, creation and modification dates, and any XMP metadata stream attached to the catalog. Hyperlinks travel via `/Link` annotations on each page. Hosted cleaners strip both, but they upload your file. `@coroboros/pdf-cleaner` runs the same strips locally on a single dependency ([`pdf-lib`](https://github.com/Hopding/pdf-lib)), opens no network connections, and writes no telemetry. See [`bench/baseline.md`](bench/baseline.md) for the round-trip numbers and the regression budget.
+</details>
 
 ## API
 
