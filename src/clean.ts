@@ -63,10 +63,20 @@ export const clean = async (input: CleanInput, options?: CleanOptions): Promise<
 
   let doc: PDFDocument;
   try {
-    doc = await PDFDocument.load(bytes, { updateMetadata: false });
+    doc = await PDFDocument.load(bytes, {
+      updateMetadata: false,
+      ignoreEncryption: true,
+    });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : 'failed to parse PDF';
     throw new CleanError('PARSE_FAILED', message, { cause });
+  }
+
+  if (doc.isEncrypted) {
+    throw new CleanError(
+      'ENCRYPTED',
+      'PDF is encrypted; decrypt before cleaning',
+    );
   }
 
   if (options?.keepLinks !== true) {

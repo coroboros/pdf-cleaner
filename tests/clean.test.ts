@@ -264,6 +264,14 @@ describe('clean()', () => {
         expect((err as CleanError).cause).toBeDefined();
       }
     });
+
+    it('throws CleanError ENCRYPTED for encrypted PDFs', async () => {
+      const encrypted = await buildPdf({ encrypted: true });
+      await expect(clean(encrypted)).rejects.toMatchObject({
+        name: 'CleanError',
+        code: 'ENCRYPTED',
+      });
+    });
   });
 
   describe('idempotency', () => {
