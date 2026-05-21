@@ -139,4 +139,16 @@ describe('clean() — property tests', () => {
       { numRuns: RUNS },
     );
   });
+
+  it('cleaned output is smaller than source for fixtures with metadata and links', async () => {
+    await fc.assert(
+      fc.asyncProperty(pdfArb, async (spec) => {
+        fc.pre(spec.links.length > 0);
+        const source = await buildPdf(spec);
+        const cleaned = await clean(source);
+        expect(cleaned.byteLength).toBeLessThan(source.byteLength);
+      }),
+      { numRuns: RUNS },
+    );
+  });
 });
