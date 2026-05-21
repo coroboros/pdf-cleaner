@@ -60,14 +60,12 @@ const pdfArb = fc
   .map(({ pages, linksPerPage, metadata }) => ({
     pages,
     metadata,
-    links: linksPerPage
-      .slice(0, pages)
-      .flatMap((count, pageIdx) =>
-        Array.from({ length: count }, (_, i) => ({
-          uri: `https://example.test/${pageIdx}/${i}`,
-          page: pageIdx,
-        })),
-      ),
+    links: linksPerPage.slice(0, pages).flatMap((count, pageIdx) =>
+      Array.from({ length: count }, (_, i) => ({
+        uri: `https://example.test/${pageIdx}/${i}`,
+        page: pageIdx,
+      })),
+    ),
   }));
 
 const RUNS = 30;

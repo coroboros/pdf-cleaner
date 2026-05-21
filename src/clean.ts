@@ -85,10 +85,7 @@ export const clean = async (input: CleanInput, options?: CleanOptions): Promise<
   throwIfAborted(signal);
 
   if (doc.isEncrypted) {
-    throw new CleanError(
-      'ENCRYPTED',
-      'PDF is encrypted; decrypt before cleaning',
-    );
+    throw new CleanError('ENCRYPTED', 'PDF is encrypted; decrypt before cleaning');
   }
 
   if (options?.keepLinks !== true) {

@@ -13,8 +13,9 @@
  * (clean default) − (clean no-strip) is the cost of the strip work.
  * (clean no-strip) − (pdf-lib load+save) is the wrapper overhead.
  */
-import { PDFArray, PDFDocument, PDFName, PDFString, StandardFonts } from 'pdf-lib';
+
 import { bench, group, run } from 'mitata';
+import { PDFArray, PDFDocument, PDFName, PDFString, StandardFonts } from 'pdf-lib';
 import { clean } from '../dist/index.mjs';
 
 const DEFAULT_METADATA = {
