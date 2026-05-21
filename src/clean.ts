@@ -9,7 +9,6 @@ export type CleanOptions = {
   signal?: AbortSignal;
 };
 
-const LINK = PDFName.of('Link');
 const SUBTYPE = PDFName.of('Subtype');
 const METADATA = PDFName.of('Metadata');
 
@@ -40,7 +39,7 @@ const stripLinkAnnotations = (doc: PDFDocument): void => {
         continue;
       }
       const subtype = entry.lookupMaybe(SUBTYPE, PDFName);
-      if (subtype === LINK) {
+      if (subtype?.toString() === '/Link') {
         annots.remove(i);
       }
     }

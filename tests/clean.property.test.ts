@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { clean } from '../src/index.js';
 import { buildPdf, type MetadataFields } from './fixtures.js';
 
-const LINK = PDFName.of('Link');
 const SUBTYPE = PDFName.of('Subtype');
 
 type Surface = {
@@ -34,7 +33,7 @@ const surface = async (bytes: Uint8Array): Promise<Surface> => {
       const entry = annots.lookupMaybe(i, PDFDict);
       if (entry === undefined) continue;
       const subtype = entry.lookupMaybe(SUBTYPE, PDFName);
-      if (subtype === LINK) links += 1;
+      if (subtype?.toString() === '/Link') links += 1;
     }
     linksPerPage.push(links);
   }

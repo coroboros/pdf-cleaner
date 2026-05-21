@@ -22,7 +22,6 @@ const inspect = async (bytes: Uint8Array): Promise<Inspection> => {
   const pages = doc.getPages();
   const linkAnnotsPerPage: number[] = [];
   const otherAnnotsPerPage: number[] = [];
-  const LINK = PDFName.of('Link');
   const SUBTYPE = PDFName.of('Subtype');
 
   for (const page of pages) {
@@ -44,7 +43,7 @@ const inspect = async (bytes: Uint8Array): Promise<Inspection> => {
       const entry = annots.lookupMaybe(i, PDFDict);
       if (entry === undefined) continue;
       const subtype = entry.lookupMaybe(SUBTYPE, PDFName);
-      if (subtype === LINK) links += 1;
+      if (subtype?.toString() === '/Link') links += 1;
       else others += 1;
     }
     linkAnnotsPerPage.push(links);
