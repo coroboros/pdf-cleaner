@@ -24,6 +24,7 @@ Removes `/Link` annotations and wipes the Info dictionary plus any XMP metadata 
 - [Install](#install)
 - [Usage](#usage)
 - [Why this exists](#why-this-exists)
+- [CLI](#cli)
 - [API](#api)
 - [Limitations](#limitations)
 - [Contributing](#contributing)
@@ -54,7 +55,37 @@ bun add @coroboros/pdf-cleaner
 
 ## Usage
 
-### CLI
+```ts
+// ESM (recommended)
+import { clean } from '@coroboros/pdf-cleaner';
+```
+
+```js
+// CommonJS
+const { clean } = require('@coroboros/pdf-cleaner');
+```
+
+```ts
+import { readFile, writeFile } from 'node:fs/promises';
+import { clean, CleanError } from '@coroboros/pdf-cleaner';
+
+const bytes = await readFile('cv.pdf');
+
+try {
+  const cleaned = await clean(bytes);
+  await writeFile('cv_clean.pdf', cleaned);
+} catch (err) {
+  if (err instanceof CleanError) {
+    console.error(err.code, err.message);
+  }
+}
+```
+
+## Why this exists
+
+PDFs carry hidden authorship. The Info dictionary embeds `/Title`, `/Author`, `/Producer`, creation and modification dates, and any XMP metadata stream attached to the catalog. Hyperlinks travel via `/Link` annotations on each page. Hosted cleaners strip both, then upload the bytes. `@coroboros/pdf-cleaner` runs the same strips in-process on a single dependency ([`pdf-lib`](https://github.com/Hopding/pdf-lib)). No network calls, no telemetry. See [`bench/baseline.md`](bench/baseline.md) for the round-trip numbers and the regression budget.
+
+## CLI
 
 Run without installing:
 
@@ -65,7 +96,7 @@ npx @coroboros/pdf-cleaner cv.pdf
 Install globally for repeated use:
 
 ```bash
-npm install -g @coroboros/pdf-cleaner
+pnpm add -g @coroboros/pdf-cleaner
 pdf-cleaner --help
 ```
 
@@ -125,38 +156,6 @@ pdf-cleaner cv.pdf --keep-metadata
 ```
 
 </details>
-
-### Programmatic
-
-```ts
-// ESM (recommended)
-import { clean } from '@coroboros/pdf-cleaner';
-```
-
-```js
-// CommonJS
-const { clean } = require('@coroboros/pdf-cleaner');
-```
-
-```ts
-import { readFile, writeFile } from 'node:fs/promises';
-import { clean, CleanError } from '@coroboros/pdf-cleaner';
-
-const bytes = await readFile('cv.pdf');
-
-try {
-  const cleaned = await clean(bytes);
-  await writeFile('cv_clean.pdf', cleaned);
-} catch (err) {
-  if (err instanceof CleanError) {
-    console.error(err.code, err.message);
-  }
-}
-```
-
-## Why this exists
-
-PDFs carry hidden authorship. The Info dictionary embeds `/Title`, `/Author`, `/Producer`, creation and modification dates, and any XMP metadata stream attached to the catalog. Hyperlinks travel via `/Link` annotations on each page. Hosted cleaners strip both, then upload the bytes. `@coroboros/pdf-cleaner` runs the same strips in-process on a single dependency ([`pdf-lib`](https://github.com/Hopding/pdf-lib)). No network calls, no telemetry. See [`bench/baseline.md`](bench/baseline.md) for the round-trip numbers and the regression budget.
 
 ## API
 
