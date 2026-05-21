@@ -16,8 +16,12 @@ describe('CleanError', () => {
   it('stores the code', () => {
     const a = new CleanError('INVALID_INPUT', 'msg');
     const b = new CleanError('PARSE_FAILED', 'msg');
+    const c = new CleanError('ENCRYPTED', 'msg');
+    const d = new CleanError('ABORTED', 'msg');
     expect(a.code).toBe('INVALID_INPUT');
     expect(b.code).toBe('PARSE_FAILED');
+    expect(c.code).toBe('ENCRYPTED');
+    expect(d.code).toBe('ABORTED');
   });
 
   it('forwards the message', () => {

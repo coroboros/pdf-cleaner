@@ -22,7 +22,6 @@ const inspect = async (bytes: Uint8Array): Promise<Inspection> => {
   const pages = doc.getPages();
   const linkAnnotsPerPage: number[] = [];
   const otherAnnotsPerPage: number[] = [];
-  const LINK = PDFName.of('Link');
   const SUBTYPE = PDFName.of('Subtype');
 
   for (const page of pages) {
@@ -44,7 +43,7 @@ const inspect = async (bytes: Uint8Array): Promise<Inspection> => {
       const entry = annots.lookupMaybe(i, PDFDict);
       if (entry === undefined) continue;
       const subtype = entry.lookupMaybe(SUBTYPE, PDFName);
-      if (subtype === LINK) links += 1;
+      if (subtype?.toString() === '/Link') links += 1;
       else others += 1;
     }
     linkAnnotsPerPage.push(links);
@@ -224,6 +223,17 @@ describe('clean()', () => {
       const result = await clean(buf as unknown as Uint8Array);
       expect(result.byteLength).toBeGreaterThan(0);
     });
+
+    it('handles concurrent calls on a shared Uint8Array', async () => {
+      const source = await buildPdf({
+        metadata: { title: 'T' },
+        links: [{ uri: 'https://example.com' }],
+      });
+      const baseline = await clean(source);
+      const [a, b] = await Promise.all([clean(source), clean(source)]);
+      expect(a).toEqual(baseline);
+      expect(b).toEqual(baseline);
+    });
   });
 
   describe('error handling', () => {
@@ -262,6 +272,72 @@ describe('clean()', () => {
         expect(err).toBeInstanceOf(CleanError);
         expect((err as CleanError).code).toBe('PARSE_FAILED');
         expect((err as CleanError).cause).toBeDefined();
+      }
+    });
+
+    it('throws CleanError ENCRYPTED for encrypted PDFs', async () => {
+      const encrypted = await buildPdf({ encrypted: true });
+      await expect(clean(encrypted)).rejects.toMatchObject({
+        name: 'CleanError',
+        code: 'ENCRYPTED',
+      });
+    });
+
+    it('throws CleanError ABORTED when the signal is already aborted', async () => {
+      const source = await buildPdf();
+      const controller = new AbortController();
+      controller.abort();
+      await expect(clean(source, { signal: controller.signal })).rejects.toMatchObject({
+        name: 'CleanError',
+        code: 'ABORTED',
+      });
+    });
+
+    it('preserves signal.reason on the ABORTED cause', async () => {
+      const source = await buildPdf();
+      const controller = new AbortController();
+      const reason = new Error('caller cancelled');
+      controller.abort(reason);
+      try {
+        await clean(source, { signal: controller.signal });
+        expect.fail('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(CleanError);
+        expect((err as CleanError).code).toBe('ABORTED');
+        expect((err as CleanError).cause).toBe(reason);
+      }
+    });
+
+    it('throws CleanError ABORTED when the signal fires after load', async () => {
+      const source = await buildPdf();
+      const controller = new AbortController();
+      const reason = new Error('after-load cancel');
+      queueMicrotask(() => controller.abort(reason));
+      try {
+        await clean(source, { signal: controller.signal });
+        expect.fail('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(CleanError);
+        expect((err as CleanError).code).toBe('ABORTED');
+        expect((err as CleanError).cause).toBe(reason);
+      }
+    });
+
+    it('throws CleanError ABORTED when the signal fires after the strip phase', async () => {
+      const source = await buildPdf({
+        metadata: { title: 'T' },
+        links: [{ uri: 'https://example.com' }],
+      });
+      const controller = new AbortController();
+      const reason = new Error('after-strip cancel');
+      queueMicrotask(() => queueMicrotask(() => controller.abort(reason)));
+      try {
+        await clean(source, { signal: controller.signal });
+        expect.fail('expected throw');
+      } catch (err) {
+        expect(err).toBeInstanceOf(CleanError);
+        expect((err as CleanError).code).toBe('ABORTED');
+        expect((err as CleanError).cause).toBe(reason);
       }
     });
   });

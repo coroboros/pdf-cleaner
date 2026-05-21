@@ -36,6 +36,7 @@ const applyMetadata = (doc: PDFDocument, fields: MetadataFields): void => {
   doc.setProducer(m.producer);
 };
 
+// fresh-fixture only — overwrites a non-array /Annots ref if encountered
 const appendAnnotation = (doc: PDFDocument, page: PDFPage, annotDict: PDFDict): void => {
   const ctx = doc.context;
   const annotsRef = page.node.get(PDFName.Annots);
@@ -85,6 +86,7 @@ export type FixtureOptions = {
   metadata?: MetadataFields | false;
   links?: Array<{ uri: string; page?: number }>;
   textAnnots?: Array<{ contents: string; page?: number }>;
+  encrypted?: boolean;
 };
 
 export const buildPdf = async (options: FixtureOptions = {}): Promise<Uint8Array> => {
@@ -115,6 +117,29 @@ export const buildPdf = async (options: FixtureOptions = {}): Promise<Uint8Array
     if (target !== undefined) {
       appendAnnotation(doc, target, buildTextAnnotation(doc, text.contents, [50, 450, 70, 470]));
     }
+  }
+
+  if (options.encrypted === true) {
+    // Inject a stub /Encrypt entry into the trailer. pdf-lib detects encryption
+    // by the presence of trailer /Encrypt — the contents do not need to be a
+    // valid RC4/AES key, just a resolvable dictionary.
+    doc.context.trailerInfo.Encrypt = doc.context.obj({
+      Filter: 'Standard',
+      V: 1,
+      R: 2,
+      Length: 40,
+      P: -1852,
+      O: 'stub-owner-key-32-bytes-padded____',
+      U: 'stub-user-key-32-bytes-padded_____',
+    });
+    const bytes = await doc.save({ useObjectStreams: false });
+    const verify = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    if (!verify.isEncrypted) {
+      throw new Error(
+        'buildPdf({ encrypted: true }) failed to produce an encrypted PDF — pdf-lib may have changed its isEncrypted heuristic.',
+      );
+    }
+    return bytes;
   }
 
   return doc.save();
