@@ -1,6 +1,6 @@
 {
   "name": "@coroboros/pdf-cleaner",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Strip metadata and links from PDFs locally — no upload, no tracking.",
   "type": "module",
   "sideEffects": false,

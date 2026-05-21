@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.3 - 21/05/2026
+
+### Documentation
+- `pdf-cleaner` — add Compared to alternatives section (#4)
+
+
 ## v1.0.2 - 21/05/2026
 
 ### Documentation
