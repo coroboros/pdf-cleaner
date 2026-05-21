@@ -70,9 +70,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "private": false,
-  "preferGlobal": false,
-  "analyze": false,
   "dependencies": {
     "pdf-lib": "^1.17.1"
   },
