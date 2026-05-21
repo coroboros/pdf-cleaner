@@ -46,8 +46,8 @@ const surface = async (bytes: Uint8Array): Promise<Surface> => {
 };
 
 const metadataArb: fc.Arbitrary<MetadataFields> = fc.record({
-  title: fc.string({ minLength: 1, maxLength: 30 }),
-  author: fc.string({ minLength: 1, maxLength: 30 }),
+  title: fc.string({ minLength: 1, maxLength: 30, unit: 'grapheme' }),
+  author: fc.string({ minLength: 1, maxLength: 30, unit: 'grapheme' }),
 });
 
 const pdfArb = fc
