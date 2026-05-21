@@ -37,6 +37,8 @@ Removes `/Link` annotations and wipes the Info dictionary plus any XMP metadata 
 
 ## Install
 
+**As a library**
+
 ```bash
 pnpm add @coroboros/pdf-cleaner
 ```
@@ -51,6 +53,19 @@ yarn add @coroboros/pdf-cleaner
 
 ```bash
 bun add @coroboros/pdf-cleaner
+```
+
+**As a CLI**
+
+```bash
+# Run without installing
+npx @coroboros/pdf-cleaner cv.pdf
+```
+
+```bash
+# Install globally for repeated use
+pnpm add -g @coroboros/pdf-cleaner
+pdf-cleaner --help
 ```
 
 ## Usage
@@ -76,19 +91,6 @@ npx @coroboros/pdf-cleaner cv.pdf
 PDFs carry hidden authorship. The Info dictionary embeds `/Title`, `/Author`, `/Producer`, creation and modification dates, and any XMP metadata stream attached to the catalog. Hyperlinks travel via `/Link` annotations on each page. Hosted cleaners strip both, then upload the bytes. `@coroboros/pdf-cleaner` runs the same strips in-process on a single dependency ([`pdf-lib`](https://github.com/Hopding/pdf-lib)). No network calls, no telemetry. See [`bench/baseline.md`](bench/baseline.md) for the round-trip numbers and the regression budget.
 
 ## CLI
-
-Run without installing:
-
-```bash
-npx @coroboros/pdf-cleaner cv.pdf
-```
-
-Install globally for repeated use:
-
-```bash
-pnpm add -g @coroboros/pdf-cleaner
-pdf-cleaner --help
-```
 
 <details>
 <summary><code>pdf-cleaner &lt;input&gt; [options]</code></summary>
