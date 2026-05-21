@@ -137,12 +137,13 @@ Node `Buffer` is accepted via structural compatibility — `Buffer` extends `Uin
 
 <br>
 
-Options for [`clean`](#api). Every field is optional. Both flags default to `false` — that is, strip aggressively.
+Options for [`clean`](#api). Every field is optional. The two boolean flags default to `false` — the defaults strip aggressively.
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `keepLinks` | `boolean` | `false` | Preserve `/Link` annotations on every page. Other annotation subtypes (text notes, highlights, form widgets) are preserved regardless. |
 | `keepMetadata` | `boolean` | `false` | Preserve the Info dictionary (`/Title`, `/Author`, `/Subject`, `/Keywords`, `/Creator`, `/Producer`, `/CreationDate`, `/ModDate`) and any XMP metadata stream attached to the catalog. |
+| `signal` | `AbortSignal` | *(none)* | Cancel the operation cooperatively. Checked before pdf-lib `load`, after `load`, and after the strip phase. Aborting throws `CleanError` with `code: 'ABORTED'` and `cause = signal.reason`. The cancellation is non-cooperative inside pdf-lib itself — once `load` or `save` is entered, it runs to completion before the next check fires. |
 
 </details>
 
@@ -170,7 +171,7 @@ class CleanError extends Error {
 <br>
 
 ```ts
-type CleanErrorCode = 'INVALID_INPUT' | 'PARSE_FAILED';
+type CleanErrorCode = 'INVALID_INPUT' | 'PARSE_FAILED' | 'ENCRYPTED' | 'ABORTED';
 ```
 
 </details>
@@ -191,7 +192,9 @@ Strip metadata and links from a PDF and return the cleaned bytes.
 
 **Returns** — `Promise<Uint8Array>`. The cleaned PDF bytes. `clean()` is idempotent on the observable surface — calling it on its own output is a no-op.
 
-**Throws** — [`CleanError`](#types). `INVALID_INPUT` when the input is not bytes, is null, or is empty. `PARSE_FAILED` when the bytes do not parse as a valid PDF, or when the PDF is encrypted. The underlying parser error is preserved on `Error.cause`.
+**Throws** — [`CleanError`](#types). `INVALID_INPUT` when the input is not bytes, is null, or is empty. `PARSE_FAILED` when the bytes do not parse as a valid PDF; the underlying parser error is preserved on `Error.cause`. `ENCRYPTED` when the PDF carries an `/Encrypt` entry — decrypt before cleaning. `ABORTED` when `options.signal` fires; `signal.reason` is preserved on `Error.cause`.
+
+**Notes** — see [`bench/baseline.md`](bench/baseline.md) for the round-trip numbers and the regression budget.
 
 **Examples**
 
@@ -213,6 +216,11 @@ const cleaned = await clean(original, { keepLinks: true });
 await writeFile('cv_public.pdf', cleaned);
 ```
 
+```ts
+// Server-side use — bound the work with an AbortSignal
+const cleaned = await clean(bytes, { signal: AbortSignal.timeout(5000) });
+```
+
 </details>
 
 ### Errors
@@ -220,7 +228,9 @@ await writeFile('cv_public.pdf', cleaned);
 | Code | Description |
 | --- | --- |
 | `INVALID_INPUT` | `input` is missing, `null`, not a `Uint8Array` / `Buffer` / `ArrayBuffer`, or empty. |
-| `PARSE_FAILED` | The bytes do not parse as a valid PDF, or the PDF is encrypted. The original parser error is available via `Error.cause`. |
+| `PARSE_FAILED` | The bytes do not parse as a valid PDF. The original parser error is available via `Error.cause`. |
+| `ENCRYPTED` | The PDF carries an `/Encrypt` trailer entry. Decrypt before cleaning. |
+| `ABORTED` | `options.signal` fired during the operation. `signal.reason` is preserved on `Error.cause`. |
 
 ## Privacy
 
@@ -229,7 +239,7 @@ Cleaning happens in-process. The library opens no network connections and writes
 ## Limitations
 
 - Stripping is limited to `/Link` annotations and the standard metadata surfaces (Info dictionary plus any XMP metadata stream). Other annotation subtypes are preserved.
-- Encrypted PDFs are rejected with `PARSE_FAILED`. Decrypt them first.
+- Encrypted PDFs are rejected with `ENCRYPTED`. Decrypt them first.
 - Directory mode walks the top level only — subdirectories are not traversed.
 - Text content, embedded images, page geometry, fonts, bookmarks, and form fields are preserved untouched.
 - Out of scope: text redaction, watermark removal, compression, OCR, JavaScript action stripping, attachment removal.
