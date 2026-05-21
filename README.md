@@ -1,9 +1,11 @@
+<div align="center">
+
 <!-- omit in toc -->
 # @coroboros/pdf-cleaner
 
-**Strip metadata and links from PDFs locally. No upload, no tracking.**
+**Strip metadata and links from PDFs locally — no upload, no tracking.**
 
-Removes `/Link` annotations and wipes the Info dictionary plus any XMP metadata stream. Ships as both a programmatic library and an `npx` CLI. Runs entirely in process.
+Removes `/Link` annotations and wipes the Info dictionary plus any XMP metadata stream attached to the catalog. Ships as both a programmatic library and an `npx` CLI. One runtime dependency: `pdf-lib`.
 
 [![npm](https://img.shields.io/npm/v/@coroboros/pdf-cleaner?style=flat-square&color=000000)](https://www.npmjs.com/package/@coroboros/pdf-cleaner)
 [![ci](https://img.shields.io/github/actions/workflow/status/coroboros/pdf-cleaner/ci.yml?branch=main&style=flat-square&label=ci&color=000000)](https://github.com/coroboros/pdf-cleaner/actions/workflows/ci.yml)
@@ -11,40 +13,26 @@ Removes `/Link` annotations and wipes the Info dictionary plus any XMP metadata 
 [![stars](https://img.shields.io/github/stars/coroboros/pdf-cleaner?style=flat-square&label=stars&color=000000)](https://github.com/coroboros/pdf-cleaner)
 [![coroboros.com](https://img.shields.io/badge/coroboros.com-000000?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiLz48cGF0aCBkPSJNMiAxMmgyME0xMiAyYTE1LjMgMTUuMyAwIDAgMSA0IDEwIDE1LjMgMTUuMyAwIDAgMS00IDEwIDE1LjMgMTUuMyAwIDAgMS00LTEwIDE1LjMgMTUuMyAwIDAgMSA0LTEweiIvPjwvc3ZnPg==)](https://coroboros.com)
 
+</div>
+
 <!-- omit in toc -->
 ## Contents
 
 - [Requirements](#requirements)
 - [Install](#install)
-- [CLI](#cli)
-- [Programmatic](#programmatic)
+- [Usage](#usage)
+- [Why this exists](#why-this-exists)
 - [API](#api)
-- [Privacy](#privacy)
 - [Limitations](#limitations)
 - [Contributing](#contributing)
 - [License](#license)
 
 ## Requirements
 
-- Node.js `>=22` LTS. Use [fnm](https://github.com/Schniz/fnm) for version management — Rust-based, faster than nvm.
-- Any of the following package managers: `pnpm`, `npm`, `yarn`, `bun`.
+- Node.js `>= 22 LTS`. Use [fnm](https://github.com/Schniz/fnm) for fast Rust-based version switching.
+- Any modern package manager: pnpm, npm, yarn, bun.
 
 ## Install
-
-Run without installing:
-
-```bash
-npx @coroboros/pdf-cleaner cv.pdf
-```
-
-Install globally for repeated CLI use:
-
-```bash
-npm install -g @coroboros/pdf-cleaner
-pdf-cleaner --help
-```
-
-Add as a dependency for programmatic use:
 
 ```bash
 pnpm add @coroboros/pdf-cleaner
@@ -62,7 +50,24 @@ yarn add @coroboros/pdf-cleaner
 bun add @coroboros/pdf-cleaner
 ```
 
-## CLI
+## Usage
+
+### CLI
+
+Run without installing:
+
+```bash
+npx @coroboros/pdf-cleaner cv.pdf
+```
+
+Install globally for repeated use:
+
+```bash
+npm install -g @coroboros/pdf-cleaner
+pdf-cleaner --help
+```
+
+Common forms:
 
 ```bash
 # Single file → cv_clean.pdf alongside the input
@@ -83,9 +88,9 @@ pdf-cleaner cv.pdf --keep-links
 pdf-cleaner cv.pdf --keep-metadata
 ```
 
-**Exit codes** — `0` success, `1` user error (bad path, unknown flag), `2` per-file cleaning error, `3` unexpected.
+Exit codes: `0` success, `1` user error (bad path, unknown flag), `2` per-file cleaning error, `3` unexpected.
 
-## Programmatic
+### Programmatic
 
 ```ts
 // ESM (recommended)
@@ -104,7 +109,7 @@ import { clean, CleanError } from '@coroboros/pdf-cleaner';
 const bytes = await readFile('cv.pdf');
 
 try {
-  const cleaned = await clean(bytes, { keepLinks: false, keepMetadata: false });
+  const cleaned = await clean(bytes);
   await writeFile('cv_clean.pdf', cleaned);
 } catch (err) {
   if (err instanceof CleanError) {
@@ -112,6 +117,10 @@ try {
   }
 }
 ```
+
+## Why this exists
+
+PDFs carry hidden authorship. The Info dictionary embeds `/Title`, `/Author`, `/Producer`, creation and modification dates, and any XMP metadata stream attached to the catalog. Hyperlinks travel via `/Link` annotations on each page. Hosted cleaners strip both, but they upload your file. `@coroboros/pdf-cleaner` runs the same strips locally on a single dependency ([`pdf-lib`](https://github.com/Hopding/pdf-lib)), opens no network connections, and writes no telemetry. See [`bench/baseline.md`](bench/baseline.md) for the round-trip numbers and the regression budget.
 
 ## API
 
@@ -122,7 +131,7 @@ try {
 
 <br>
 
-Accepted byte shapes for [`clean`](#api).
+The bytes that [`clean`](#cleaning) accepts.
 
 ```ts
 type CleanInput = Uint8Array | ArrayBuffer;
@@ -137,7 +146,7 @@ Node `Buffer` is accepted via structural compatibility — `Buffer` extends `Uin
 
 <br>
 
-Options for [`clean`](#api). Every field is optional. The two boolean flags default to `false` — the defaults strip aggressively.
+Per-call overrides for [`clean`](#cleaning). Every field is optional; the two boolean flags default to `false` so the defaults strip aggressively.
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -152,16 +161,17 @@ Options for [`clean`](#api). Every field is optional. The two boolean flags defa
 
 <br>
 
-Thrown by [`clean`](#api). Inherits from `Error`. See [Errors](#errors) for the code list.
+Thrown by [`clean`](#cleaning) for inputs it cannot process. Inherits from `Error`, supports `Error.cause` for wrapping.
 
 ```ts
 class CleanError extends Error {
   readonly name: 'CleanError';
   readonly code: CleanErrorCode;
-  readonly message: string;
-  readonly cause?: unknown;
+  constructor(code: CleanErrorCode, message: string, options?: { cause?: unknown });
 }
 ```
+
+The `code` field is a stable string discriminant safe for runtime branching. See [Errors](#errors) for the code list.
 
 </details>
 
@@ -176,6 +186,8 @@ type CleanErrorCode = 'INVALID_INPUT' | 'PARSE_FAILED' | 'ENCRYPTED' | 'ABORTED'
 
 </details>
 
+### Cleaning
+
 <details>
 <summary><code>clean(input, options?)</code></summary>
 
@@ -188,7 +200,7 @@ Strip metadata and links from a PDF and return the cleaned bytes.
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `input` | [`CleanInput`](#types) | *(required)* | The PDF bytes. Must be non-empty. |
-| `options?` | [`CleanOptions`](#types) | `{}` | Granular opt-out flags. |
+| `options?` | [`CleanOptions`](#types) | `{}` | Per-call overrides. See the type for each field. |
 
 **Returns** — `Promise<Uint8Array>`. The cleaned PDF bytes. `clean()` is idempotent on the observable surface — calling it on its own output is a no-op.
 
@@ -227,14 +239,10 @@ const cleaned = await clean(bytes, { signal: AbortSignal.timeout(5000) });
 
 | Code | Description |
 | --- | --- |
-| `INVALID_INPUT` | `input` is missing, `null`, not a `Uint8Array` / `Buffer` / `ArrayBuffer`, or empty. |
+| `INVALID_INPUT` | `input` is missing, `null`, not a [`CleanInput`](#types), or empty. |
 | `PARSE_FAILED` | The bytes do not parse as a valid PDF. The original parser error is available via `Error.cause`. |
 | `ENCRYPTED` | The PDF carries an `/Encrypt` trailer entry. Decrypt before cleaning. |
 | `ABORTED` | `options.signal` fired during the operation. `signal.reason` is preserved on `Error.cause`. |
-
-## Privacy
-
-Cleaning happens in-process. The library opens no network connections and writes no telemetry. CLI output goes to disk only — to `<basename>_clean.pdf` alongside the input, to the directory passed via `--out`, or back over the original with `--in-place`.
 
 ## Limitations
 
@@ -251,6 +259,7 @@ Bug reports and PRs welcome.
 - Open an issue before submitting non-trivial PRs.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/).
 - Run `pnpm lint && pnpm typecheck && pnpm test` before pushing.
+- Run `pnpm bench` against `bench/baseline.md` when touching `src/clean.ts` — no regression > 10 % at fixed feature set.
 - Target the `main` branch.
 
 ## License
