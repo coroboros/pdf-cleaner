@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.2 - 21/05/2026
+
+### Documentation
+- `readme` — promote CLI section; restructure Install/Usage/CLI/API tree (#3)
+
+
 ## v1.0.1 - 21/05/2026
 
 ### Configuration
