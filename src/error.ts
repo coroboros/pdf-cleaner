@@ -1,4 +1,4 @@
-export type CleanErrorCode = 'INVALID_INPUT' | 'PARSE_FAILED';
+export type CleanErrorCode = 'INVALID_INPUT' | 'PARSE_FAILED' | 'ENCRYPTED' | 'ABORTED';
 
 export class CleanError extends Error {
   readonly code: CleanErrorCode;
