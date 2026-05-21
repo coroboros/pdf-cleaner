@@ -27,6 +27,7 @@ const DEFAULT_METADATA = {
   producer: 'Bench Producer',
 };
 
+// fresh-fixture only — overwrites a non-array /Annots ref if encountered
 const appendAnnotation = (page, annotDict) => {
   const ctx = page.doc.context;
   const annotsRef = page.node.get(PDFName.Annots);

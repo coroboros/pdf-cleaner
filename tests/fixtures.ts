@@ -36,6 +36,7 @@ const applyMetadata = (doc: PDFDocument, fields: MetadataFields): void => {
   doc.setProducer(m.producer);
 };
 
+// fresh-fixture only — overwrites a non-array /Annots ref if encountered
 const appendAnnotation = (doc: PDFDocument, page: PDFPage, annotDict: PDFDict): void => {
   const ctx = doc.context;
   const annotsRef = page.node.get(PDFName.Annots);
